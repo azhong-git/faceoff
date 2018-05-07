@@ -35,6 +35,9 @@ class FaceLandmark:
         y2 = min(int(y2 + 0.5), self.rows - 1)
         return [x1, y1, x2, y2]
 
+    def get_distance(self, landmark_a, landmark_b):
+        return np.linalg.norm(self.landmarks[landmark_a] - self.landmarks[landmark_b])
+
 class FaceData:
     def __init__(self):
         self.items = []

@@ -94,6 +94,6 @@ right_eye_landmarks_augmented = augment_data(face_landmarks,
                                              'right_eye', 0.2, 0.2,
                                              'right_eye', (32, 32))
 import pickle
-pickle.dump(mouth_landmarks_augmented, open('data/mouth.p', 'wb'))
-pickle.dump(left_eye_landmarks_augmented, open('data/leye.p', 'wb'))
-pickle.dump(right_eye_landmarks_augmented, open('data/reye.p', 'wb'))
+pickle.dump(np.random.shuffle(mouth_landmarks_augmented), open('data/mouth.p', 'wb'))
+pickle.dump(np.random.shuffle(left_eye_landmarks_augmented), open('data/leye.p', 'wb'))
+pickle.dump(np.random.shuffle(right_eye_landmarks_augmented), open('data/reye.p', 'wb'))
