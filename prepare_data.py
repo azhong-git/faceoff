@@ -18,6 +18,7 @@ def prepare_data(data_path, annotation_path, landmark_type):
                 image = cv2.cvtColor(cv2.imread(filepath), cv2.COLOR_BGR2GRAY)
                 face_landmark = FaceLandmark(image, landmarks, landmark_type)
                 face_landmark_list.append(face_landmark)
+            np.random.shuffle(face_landmark_list)
             return face_landmark_list
 
 def augment_data(face_landmarks,
@@ -68,32 +69,39 @@ def augment_data(face_landmarks,
             landmarks = (landmarks - np.array([output_center[0] - half_output_dim_x + translate_x,
                                                output_center[1] - half_output_dim_y + translate_y]))
             output_face_landmarks.append(FaceLandmark(image, landmarks, fl.landmark_type))
-    return output_face_landmarks
+    return np.array(output_face_landmarks)
 
 
 # load muct data through https://github.com/azhongwl/clmtools
 face_landmarks = prepare_data('/Users/azhong/face/clmtools/pdm_builder/data/images/',
                               '/Users/azhong/face/clmtools/pdm_builder/data/annotations.csv',
                               'muct_clmtools')
+augment_size = 10
 mouth_landmarks_augmented = augment_data(face_landmarks,
-                                         10,
+                                         augment_size,
                                          'mouth', 10,
                                          'face', 128, 0.1,
                                          'mouth', 0.2, 0.2,
                                          'mouth', (64, 64))
 left_eye_landmarks_augmented = augment_data(face_landmarks,
-                                            10,
+                                            augment_size,
                                             'left_eye', 10,
                                             'face', 128, 0.1,
                                             'left_eye', 0.2, 0.2,
                                             'left_eye', (32, 32))
 right_eye_landmarks_augmented = augment_data(face_landmarks,
-                                             10,
+                                             augment_size,
                                              'right_eye', 10,
                                              'face', 128, 0.1,
                                              'right_eye', 0.2, 0.2,
                                              'right_eye', (32, 32))
+validation_split = 0.2
+train_size = int(len(face_landmarks) * augment_size * (1-validation_split))
+np.random.shuffle(mouth_landmarks_augmented[:train_size])
+np.random.shuffle(left_eye_landmarks_augmented[:train_size])
+np.random.shuffle(right_eye_landmarks_augmented[:train_size])
+
 import pickle
-pickle.dump(np.random.shuffle(mouth_landmarks_augmented), open('data/mouth.p', 'wb'))
-pickle.dump(np.random.shuffle(left_eye_landmarks_augmented), open('data/leye.p', 'wb'))
-pickle.dump(np.random.shuffle(right_eye_landmarks_augmented), open('data/reye.p', 'wb'))
+pickle.dump(mouth_landmarks_augmented, open('data/mouth.p', 'wb'))
+pickle.dump(left_eye_landmarks_augmented, open('data/leye.p', 'wb'))
+pickle.dump(right_eye_landmarks_augmented, open('data/reye.p', 'wb'))
