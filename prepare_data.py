@@ -68,7 +68,7 @@ def augment_data(face_landmarks,
             landmarks = (landmarks - np.array([output_center[0] - half_output_dim_x + translate_x,
                                                output_center[1] - half_output_dim_y + translate_y]))
             output_face_landmarks.append(FaceLandmark(image, landmarks, fl.landmark_type))
-        return output_face_landmarks
+    return output_face_landmarks
 
 
 # load muct data through https://github.com/azhongwl/clmtools
