@@ -5,7 +5,7 @@ import datetime
 import os
 
 from load_data import load_landmarks_data, split_data
-from models import simple_CNN
+from models import simple_CNN, simpler_CNN, XCEPTION_CNN
 
 batch_size = 32
 input_shape = (64, 64, 1)
@@ -15,7 +15,7 @@ validation_split = .2
 patience = 50
 
 now = datetime.datetime.now()
-model_name = 'simple_cnn'
+model_name = 'simpler_cnn'
 base_path = 'models/'
 base_path += now.strftime("%Y_%m_%d_%H_%M_%S") + '/'
 if not os.path.exists(base_path):
@@ -25,7 +25,7 @@ if not os.path.exists(base_path):
 images, vals = load_landmarks_data('data/mouth.p')
 
 # define CNN model
-model = simple_CNN((64, 64, 1))
+model = simpler_CNN((64, 64, 1))
 model.compile(loss='mse', optimizer = 'adam', metrics=['accuracy'])
 model.summary()
 
