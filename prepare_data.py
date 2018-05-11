@@ -14,15 +14,41 @@ def prepare_data(data_path, annotation_path, landmark_type):
                 filepath = os.path.join(data_path, filename)
                 if not os.path.isfile(filepath):
                     continue
-                landmarks = np.array([[float(splitted[i*3+1]), float(splitted[i*3+2])] for i in range(landmark_size)])
+                landmarks = np.array([[float(splitted[i*3+2]), float(splitted[i*3+3])] for i in range(landmark_size)])
                 image = cv2.cvtColor(cv2.imread(filepath), cv2.COLOR_BGR2GRAY)
                 face_landmark = FaceLandmark(image, landmarks, landmark_type)
                 face_landmark_list.append(face_landmark)
-            np.random.shuffle(face_landmark_list)
-            return face_landmark_list
+    if landmark_type == 'muct':
+        landmark_size = 76
+        with open(annotation_path) as fi:
+            header = True
+            for line in fi:
+                if header:
+                    header = False
+                    continue
+                splitted = line.split(',')
+                filename = splitted[0]
+                filepath = os.path.join(data_path, filename + '.jpg')
+                if not os.path.isfile(filepath):
+                    print('{} not found'.format(filepath))
+                    continue
+                landmarks = []
+                for i in range(landmark_size):
+                    x = float(splitted[i*2+2])
+                    y = float(splitted[i*2+3])
+                    if x == 0 and y == 0:
+                        x = -1
+                        y = -1
+                    landmarks.append([x,y])
+                landmarks = np.array(landmarks)
+                image = cv2.cvtColor(cv2.imread(filepath), cv2.COLOR_BGR2GRAY)
+                face_landmark = FaceLandmark(image, landmarks, landmark_type)
+                face_landmark_list.append(face_landmark)
+    return face_landmark_list
 
 def augment_data(face_landmarks,
-                 augment_size = 10,
+                 augment_size = 5,
+                 fliplr = False,
                  rotate_bounding_box_part = 'face',    # rotate around part bounding box
                  rotate_limit_in_degrees = 10,         # rotate limit defaults to -10 to 10 degrees
                  scale_bounding_box_part = 'face',     # scale to fit
@@ -72,10 +98,19 @@ def augment_data(face_landmarks,
     return np.array(output_face_landmarks)
 
 
+face_landmarks_dict = {}
 # load muct data through https://github.com/azhongwl/clmtools
-face_landmarks = prepare_data('/Users/azhong/face/clmtools/pdm_builder/data/images/',
-                              '/Users/azhong/face/clmtools/pdm_builder/data/annotations.csv',
-                              'muct_clmtools')
+# face_landmarks['muct_clmtools'] = prepare_data('/Users/azhong/face/clmtools/pdm_builder/data/images/',
+#                                                '/Users/azhong/face/clmtools/pdm_builder/data/annotations.csv',
+#                                                'muct_clmtools')
+face_landmarks_dict['muct'] = prepare_data('/Users/azhong/face/clmtools/pdm_builder/data/images/',
+                                           '/Users/azhong/face/clmtools/pdm_builder/data/muct-landmarks/muct76-opencv.csv',
+                                           'muct')
+face_landmarks = []
+face_landmarks.extend(face_landmarks_dict['muct'])
+for fl in face_landmarks:
+    fl.convert_to_landmark_type('muct')
+np.random.shuffle(face_landmarks)
 augment_size = 10
 mouth_landmarks_augmented = augment_data(face_landmarks,
                                          augment_size,
