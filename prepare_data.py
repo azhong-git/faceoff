@@ -95,6 +95,11 @@ def augment_data(face_landmarks,
             landmarks = (landmarks - np.array([output_center[0] - half_output_dim_x + translate_x,
                                                output_center[1] - half_output_dim_y + translate_y]))
             output_face_landmarks.append(FaceLandmark(image, landmarks, fl.landmark_type))
+            if fliplr:
+                image_flipped = np.fliplr(image)
+                landmarks_flipped = (np.array([image.shape[1]-1, 0]) - landmarks) * np.array([1, -1])
+                output_face_landmarks.append(FaceLandmark(image_flipped, landmarks_flipped, fl.landmark_type))
+
     return np.array(output_face_landmarks)
 
 
@@ -114,18 +119,21 @@ np.random.shuffle(face_landmarks)
 augment_size = 10
 mouth_landmarks_augmented = augment_data(face_landmarks,
                                          augment_size,
-                                         'mouth', 10,
+                                         True,
+                                         'mouth', 5,
                                          'face', 128, 0.1,
                                          'mouth', 0.2, 0.2,
                                          'mouth', (64, 64))
 left_eye_landmarks_augmented = augment_data(face_landmarks,
                                             augment_size,
+                                            True,
                                             'left_eye', 10,
                                             'face', 128, 0.1,
                                             'left_eye', 0.2, 0.2,
                                             'left_eye', (32, 32))
 right_eye_landmarks_augmented = augment_data(face_landmarks,
                                              augment_size,
+                                             True,
                                              'right_eye', 10,
                                              'face', 128, 0.1,
                                              'right_eye', 0.2, 0.2,
