@@ -4,15 +4,13 @@ from keras.callbacks import ReduceLROnPlateau
 import datetime
 import os
 
-from load_data import load_landmarks_data, split_data
+from load_data import load_landmarks_data, split_data_by_num_train_samples
 from models import simple_CNN, simpler_CNN, simple_nodropout_CNN, simpler_nodropout_CNN, mini_inception, Kao_Onet
 
 batch_size = 32
 input_shape = (32, 32, 1)
 output_size = 12
 num_epochs = 1000
-# validation split has to be 0.2, see prepare_data.py
-validation_split = .2
 patience = 50
 
 now = datetime.datetime.now()
@@ -23,7 +21,7 @@ if not os.path.exists(base_path):
     os.makedirs(base_path)
 
 # load images and vals
-images, vals = load_landmarks_data('data/mouth.p', (input_shape[0], input_shape[1]))
+images, vals, num_train_samples = load_landmarks_data('data/mouth.p', (input_shape[0], input_shape[1]))
 
 # define CNN model
 model = Kao_Onet(input_shape, output_size)
@@ -42,7 +40,7 @@ model_checkpoint = ModelCheckpoint(model_names, 'val_loss', verbose=1,
                                    save_best_only=True)
 callbacks = [model_checkpoint, csv_logger, early_stop, reduce_lr]
 
-train_data, val_data = split_data(images, vals, validation_split)
+train_data, val_data = split_data_by_num_train_samples(images, vals, num_train_samples)
 train_images, train_vals = train_data
 model.fit(x = train_images,
           y = train_vals,

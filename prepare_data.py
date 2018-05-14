@@ -151,6 +151,9 @@ np.random.shuffle(left_eye_landmarks_augmented[:train_size])
 np.random.shuffle(right_eye_landmarks_augmented[:train_size])
 
 import pickle
-pickle.dump(mouth_landmarks_augmented, open('data/mouth.p', 'wb'))
-pickle.dump(left_eye_landmarks_augmented, open('data/leye.p', 'wb'))
-pickle.dump(right_eye_landmarks_augmented, open('data/reye.p', 'wb'))
+pickle.dump({'train_size': train_size, 'data': mouth_landmarks_augmented},
+            open('data/mouth.p', 'wb'))
+pickle.dump({'train_size': train_size, 'data': left_eye_landmarks_augmented},
+            open('data/leye.p', 'wb'))
+pickle.dump({'train_size': train_size, 'data': right_eye_landmarks_augmented},
+            open('data/reye.p', 'wb'))
