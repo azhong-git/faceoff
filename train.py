@@ -8,24 +8,25 @@ from load_data import load_landmarks_data, split_data
 from models import simple_CNN, simpler_CNN, simple_nodropout_CNN, simpler_nodropout_CNN, mini_inception, Kao_Onet
 
 batch_size = 32
-input_shape = (64, 64, 1)
+input_shape = (32, 32, 1)
+output_size = 12
 num_epochs = 1000
 # validation split has to be 0.2, see prepare_data.py
 validation_split = .2
 patience = 50
 
 now = datetime.datetime.now()
-model_name = 'kao_onet_32_lm_12'
-base_path = 'models/'
+model_name = 'kao_onet_{}_lm_{}'.format(input_shape[0], output_size)
+base_path = 'models/' + model_name + '_'
 base_path += now.strftime("%Y_%m_%d_%H_%M_%S") + '/'
 if not os.path.exists(base_path):
     os.makedirs(base_path)
 
 # load images and vals
-images, vals = load_landmarks_data('data/mouth.p', (32, 32))
+images, vals = load_landmarks_data('data/mouth.p', (input_shape[0], input_shape[1]))
 
 # define CNN model
-model = Kao_Onet((32, 32, 1), 12)
+model = Kao_Onet(input_shape, output_size)
 model.compile(loss='mse', optimizer = 'adam', metrics=['mse'])
 model.summary()
 
@@ -43,9 +44,6 @@ callbacks = [model_checkpoint, csv_logger, early_stop, reduce_lr]
 
 train_data, val_data = split_data(images, vals, validation_split)
 train_images, train_vals = train_data
-print(train_vals[0])
-print(len(train_images))
-print(len(train_vals))
 model.fit(x = train_images,
           y = train_vals,
           batch_size = batch_size,

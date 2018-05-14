@@ -14,7 +14,7 @@ def prepare_data(data_path, annotation_path, landmark_type):
                 filepath = os.path.join(data_path, filename)
                 if not os.path.isfile(filepath):
                     continue
-                landmarks = np.array([[float(splitted[i*3+2]), float(splitted[i*3+3])] for i in range(landmark_size)])
+                landmarks = np.array([[float(splitted[i*3+1]), float(splitted[i*3+2])] for i in range(landmark_size)])
                 image = cv2.cvtColor(cv2.imread(filepath), cv2.COLOR_BGR2GRAY)
                 face_landmark = FaceLandmark(image, landmarks, landmark_type)
                 face_landmark_list.append(face_landmark)
@@ -104,42 +104,48 @@ def augment_data(face_landmarks,
 
 
 face_landmarks_dict = {}
-# load muct data through https://github.com/azhongwl/clmtools
-# face_landmarks['muct_clmtools'] = prepare_data('/Users/azhong/face/clmtools/pdm_builder/data/images/',
-#                                                '/Users/azhong/face/clmtools/pdm_builder/data/annotations.csv',
-#                                                'muct_clmtools')
+# load muct clm data through https://github.com/azhongwl/clmtools
+face_landmarks_dict['muct_clmtools'] = prepare_data('/Users/azhong/face/clmtools/pdm_builder/data/images/',
+                                               '/Users/azhong/face/clmtools/pdm_builder/data/annotations.csv',
+                                               'muct_clmtools')
+# load original muct data from https://github.com/StephenMilborrow/muct
 face_landmarks_dict['muct'] = prepare_data('/Users/azhong/face/clmtools/pdm_builder/data/images/',
                                            '/Users/azhong/face/clmtools/pdm_builder/data/muct-landmarks/muct76-opencv.csv',
                                            'muct')
 face_landmarks = []
 face_landmarks.extend(face_landmarks_dict['muct'])
+face_landmarks.extend(face_landmarks_dict['muct_clmtools'])
 for fl in face_landmarks:
     fl.convert_to_landmark_type('muct')
 np.random.shuffle(face_landmarks)
-augment_size = 10
+augment_size = 5
+flip = True
 mouth_landmarks_augmented = augment_data(face_landmarks,
                                          augment_size,
-                                         True,
+                                         flip,
                                          'mouth', 5,
                                          'face', 128, 0.1,
                                          'mouth', 0.2, 0.2,
                                          'mouth', (64, 64))
 left_eye_landmarks_augmented = augment_data(face_landmarks,
                                             augment_size,
-                                            True,
+                                            flip,
                                             'left_eye', 10,
                                             'face', 128, 0.1,
                                             'left_eye', 0.2, 0.2,
                                             'left_eye', (32, 32))
 right_eye_landmarks_augmented = augment_data(face_landmarks,
                                              augment_size,
-                                             True,
+                                             flip,
                                              'right_eye', 10,
                                              'face', 128, 0.1,
                                              'right_eye', 0.2, 0.2,
                                              'right_eye', (32, 32))
 validation_split = 0.2
-train_size = int(len(face_landmarks) * augment_size * (1-validation_split))
+if flip == True:
+    train_size = int(len(face_landmarks) * augment_size * 2 * (1-validation_split))
+else:
+    train_size = int(len(face_landmarks) * augment_size * (1-validation_split))
 np.random.shuffle(mouth_landmarks_augmented[:train_size])
 np.random.shuffle(left_eye_landmarks_augmented[:train_size])
 np.random.shuffle(right_eye_landmarks_augmented[:train_size])

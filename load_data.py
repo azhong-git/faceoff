@@ -19,7 +19,7 @@ def load_landmarks_data(pickle_path, input_shape = (64, 64)):
         # values.append(abs_open/lr_dist)
         # values.append(np.array([abs_open, tb_dist]))
         ## direct landmarks
-        landmark_indices = [44, 50, 47, 53, 60, 57]
+        landmark_indices = [48, 54, 51, 57, 64, 61]
         value = []
         for i in landmark_indices:
             value.append(fl.landmarks[i][0] / 1.0 / fl.cols * input_shape[1])
