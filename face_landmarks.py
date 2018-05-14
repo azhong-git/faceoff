@@ -44,3 +44,16 @@ def get_landmark_index_dict(landmark_type):
         return landmark_index_dict
     else:
         assert False, 'landmark type {} not supported'.format(landmark_type)
+
+def flip_landmarks(landmarks, landmark_type):
+    assert landmark_type == 'muct', 'only supporting muct landmark_type as of now'
+    mappings = [(0, 14), (1, 13), (2, 12), (3, 11), (4, 10), (5, 9), (6, 8),
+                (48, 54), (49, 53), (50, 52), (59, 55), (58, 56), (65, 63), (60, 62),
+                (39, 43), (40, 42), (46, 47), (38, 44), (37, 45),
+                (24, 18), (23, 17), (22, 16), (21, 15),
+                (29, 34), (27, 32), (31, 36), (28, 33), (30, 35),
+                (69, 73), (70, 74), (68, 72), (71, 75)]
+    for ia, ib in mappings:
+        temp = landmarks[ia].copy()
+        landmarks[ia] = landmarks[ib]
+        landmarks[ib] = temp

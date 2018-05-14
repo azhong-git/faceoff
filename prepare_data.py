@@ -3,6 +3,8 @@ import cv2
 import numpy as np
 
 from face_data import FaceData, FaceLandmark
+from face_landmarks import flip_landmarks
+
 def prepare_data(data_path, annotation_path, landmark_type):
     face_landmark_list = []
     if landmark_type == 'muct_clmtools':
@@ -47,7 +49,7 @@ def prepare_data(data_path, annotation_path, landmark_type):
     return face_landmark_list
 
 def augment_data(face_landmarks,
-                 augment_size = 5,
+                 augment_size = 10,
                  fliplr = False,
                  rotate_bounding_box_part = 'face',    # rotate around part bounding box
                  rotate_limit_in_degrees = 10,         # rotate limit defaults to -10 to 10 degrees
@@ -98,6 +100,7 @@ def augment_data(face_landmarks,
             if fliplr:
                 image_flipped = np.fliplr(image)
                 landmarks_flipped = (np.array([image.shape[1]-1, 0]) - landmarks) * np.array([1, -1])
+                flip_landmarks(landmarks_flipped, fl.landmark_type)
                 output_face_landmarks.append(FaceLandmark(image_flipped, landmarks_flipped, fl.landmark_type))
 
     return np.array(output_face_landmarks)
