@@ -10,6 +10,7 @@ from models import simple_CNN, simpler_CNN, simple_nodropout_CNN, simpler_nodrop
 batch_size = 32
 input_shape = (32, 32, 1)
 output_size = 12
+# output_size = 12
 num_epochs = 1000
 patience = 50
 
@@ -21,7 +22,8 @@ if not os.path.exists(base_path):
     os.makedirs(base_path)
 
 # load images and vals
-images, vals, num_train_samples = load_landmarks_data('data/mouth.p', (input_shape[0], input_shape[1]))
+# images, vals, num_train_samples = load_landmarks_data('data/face.p', (input_shape[0], input_shape[1]))
+images, vals, num_train_samples = load_landmarks_data('data/mouth.p', output_size, (input_shape[0], input_shape[1]))
 
 # define CNN model
 model = Kao_Onet(input_shape, output_size)

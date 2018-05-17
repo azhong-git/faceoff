@@ -2,7 +2,7 @@ import pickle
 import numpy as np
 import cv2
 
-def load_landmarks_data(pickle_path, input_shape = (64, 64)):
+def load_landmarks_data(pickle_path, output_size, input_shape = (64, 64)):
     raw = pickle.load(open(pickle_path, 'rb'))
     train_size = raw['train_size']
     num_train_samples = 0
@@ -22,7 +22,12 @@ def load_landmarks_data(pickle_path, input_shape = (64, 64)):
         # values.append(abs_open/lr_dist)
         # values.append(np.array([abs_open, tb_dist]))
         ## direct landmarks
-        landmark_indices = [48, 54, 51, 57, 64, 61]
+        if output_size == 36:
+            landmark_indices = [48, 54, 51, 57, 64, 61, 67, 7, 27, 29, 28, 30, 31, 32, 34, 33, 35, 36]
+        elif output_size == 12:
+            landmark_indices = [48, 54, 51, 57, 64, 61]
+        else:
+            assert False, 'output size {} not supported'.format(output_size)
         landmark_missing = False
         value = []
         for i in landmark_indices:

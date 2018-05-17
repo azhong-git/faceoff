@@ -5,7 +5,7 @@ import numpy as np
 from face_data import FaceData, FaceLandmark
 from face_landmarks import flip_landmarks
 
-def prepare_data(data_path, annotation_path, landmark_type):
+def prepare_data(data_path, annotation_path, landmark_type, to_gray = True):
     face_landmark_list = []
     if landmark_type == 'muct_clmtools':
         landmark_size = 71
@@ -17,10 +17,12 @@ def prepare_data(data_path, annotation_path, landmark_type):
                 if not os.path.isfile(filepath):
                     continue
                 landmarks = np.array([[float(splitted[i*3+1]), float(splitted[i*3+2])] for i in range(landmark_size)])
-                image = cv2.cvtColor(cv2.imread(filepath), cv2.COLOR_BGR2GRAY)
+                image = cv2.imread(filepath)
+                if to_gray:
+                    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
                 face_landmark = FaceLandmark(image, landmarks, landmark_type)
                 face_landmark_list.append(face_landmark)
-    if landmark_type == 'muct':
+    elif landmark_type == 'muct':
         landmark_size = 76
         with open(annotation_path) as fi:
             header = True
@@ -43,9 +45,38 @@ def prepare_data(data_path, annotation_path, landmark_type):
                         y = -1
                     landmarks.append([x,y])
                 landmarks = np.array(landmarks)
-                image = cv2.cvtColor(cv2.imread(filepath), cv2.COLOR_BGR2GRAY)
+                image = cv2.imread(filepath)
+                if to_gray:
+                    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
                 face_landmark = FaceLandmark(image, landmarks, landmark_type)
                 face_landmark_list.append(face_landmark)
+    elif landmark_type == 'lfpw':
+        landmark_size = 35
+        with open(annotation_path) as fi:
+            header = True
+            for line in fi:
+                if header:
+                    header = False
+                    continue
+                splitted = line.split('\t')
+                filename = splitted[0].split('/')[-1]
+                filepath = os.path.join(data_path, filename)
+                # only read average rows
+                if (splitted[1] != 'average') or not os.path.isfile(filepath):
+                    continue
+                landmarks = []
+                for i in range(landmark_size):
+                    x = float(splitted[i*3+2])
+                    y = float(splitted[i*3+3])
+                    landmarks.append([x, y])
+                landmarks = np.array(landmarks)
+                image = cv2.imread(filepath)
+                if to_gray:
+                    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+                face_landmark = FaceLandmark(image, landmarks, landmark_type)
+                face_landmark_list.append(face_landmark)
+    else:
+        assert False, '{} not supported'
     return face_landmark_list
 
 def augment_data(face_landmarks,
@@ -107,22 +138,39 @@ def augment_data(face_landmarks,
 
 
 face_landmarks_dict = {}
-# load muct clm data through https://github.com/azhongwl/clmtools
+# load muct clm data through https://github.com/azhongwl/clmtools; around 600 faces, ~100 in the wild of varying poses
 face_landmarks_dict['muct_clmtools'] = prepare_data('/Users/azhong/face/clmtools/pdm_builder/data/images/',
                                                '/Users/azhong/face/clmtools/pdm_builder/data/annotations.csv',
                                                'muct_clmtools')
-# load original muct data from https://github.com/StephenMilborrow/muct
+# load original muct data from https://github.com/StephenMilborrow/muct: 3500 center-looking faces captured in lab with varying lighting conditions
 face_landmarks_dict['muct'] = prepare_data('/Users/azhong/face/clmtools/pdm_builder/data/images/',
                                            '/Users/azhong/face/clmtools/pdm_builder/data/muct-landmarks/muct76-opencv.csv',
                                            'muct')
+
+# load lpfw data https://neerajkumar.org/databases/lfpw: 600 faces in the wild with varying poses
+face_landmarks_dict['lfpw_train'] = prepare_data('/Users/azhong/Downloads/lfpw_pruned',
+                                                '/Users/azhong/Downloads/kbvt_lfpw_v1_train.csv',
+                                                'lfpw')
+face_landmarks_dict['lfpw_test'] = prepare_data('/Users/azhong/Downloads/lfpw_pruned',
+                                               '/Users/azhong/Downloads/kbvt_lfpw_v1_test.csv',
+                                               'lfpw')
+
 face_landmarks = []
-face_landmarks.extend(face_landmarks_dict['muct'])
-face_landmarks.extend(face_landmarks_dict['muct_clmtools'])
+for key in face_landmarks_dict.keys():
+    face_landmarks.extend(face_landmarks_dict[key])
+
 for fl in face_landmarks:
     fl.convert_to_landmark_type('muct')
 np.random.shuffle(face_landmarks)
 augment_size = 5
 flip = True
+face_landmarks_augmented = augment_data(face_landmarks,
+                                        augment_size,
+                                        flip,
+                                        'face', 5,
+                                        'face', 64, 0.1,
+                                        'face', 0.2, 0.2,
+                                        'face', (64, 64))
 mouth_landmarks_augmented = augment_data(face_landmarks,
                                          augment_size,
                                          flip,
@@ -152,11 +200,14 @@ else:
 np.random.shuffle(mouth_landmarks_augmented[:train_size])
 np.random.shuffle(left_eye_landmarks_augmented[:train_size])
 np.random.shuffle(right_eye_landmarks_augmented[:train_size])
+np.random.shuffle(face_landmarks_augmented[:train_size])
 
 import pickle
-pickle.dump({'train_size': train_size, 'data': mouth_landmarks_augmented},
-            open('data/mouth.p', 'wb'))
-pickle.dump({'train_size': train_size, 'data': left_eye_landmarks_augmented},
-            open('data/leye.p', 'wb'))
-pickle.dump({'train_size': train_size, 'data': right_eye_landmarks_augmented},
-            open('data/reye.p', 'wb'))
+# pickle.dump({'train_size': train_size, 'data': mouth_landmarks_augmented},
+#             open('data/mouth.p', 'wb'))
+# pickle.dump({'train_size': train_size, 'data': left_eye_landmarks_augmented},
+#             open('data/leye.p', 'wb'))
+# pickle.dump({'train_size': train_size, 'data': right_eye_landmarks_augmented},
+#             open('data/reye.p', 'wb'))
+pickle.dump({'train_size': train_size, 'data': face_landmarks_augmented},
+             open('data/face.p', 'wb'))
