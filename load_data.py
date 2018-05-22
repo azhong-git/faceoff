@@ -24,8 +24,12 @@ def load_landmarks_data(pickle_path, output_size, input_shape = (64, 64)):
         ## direct landmarks
         if output_size == 36:
             landmark_indices = [48, 54, 51, 57, 64, 61, 67, 7, 27, 29, 28, 30, 31, 32, 34, 33, 35, 36]
+        elif output_size == 16:
+            landmark_indices = [48, 54, 51, 57, 64, 61, 67, 7]
         elif output_size == 12:
             landmark_indices = [48, 54, 51, 57, 64, 61]
+        elif output_size == 10:
+            landmark_indices = [27, 28, 29, 30, 31]
         else:
             assert False, 'output size {} not supported'.format(output_size)
         landmark_missing = False

@@ -10,12 +10,12 @@ from models import simple_CNN, simpler_CNN, simple_nodropout_CNN, simpler_nodrop
 batch_size = 32
 input_shape = (32, 32, 1)
 output_size = 12
-# output_size = 12
 num_epochs = 1000
 patience = 50
 
 now = datetime.datetime.now()
 model_name = 'kao_onet_{}_lm_{}'.format(input_shape[0], output_size)
+# model_name = 'simple_nodropout_CNN_{}_lm_{}'.format(input_shape[0], output_size)
 base_path = 'models/' + model_name + '_'
 base_path += now.strftime("%Y_%m_%d_%H_%M_%S") + '/'
 if not os.path.exists(base_path):
@@ -27,6 +27,7 @@ images, vals, num_train_samples = load_landmarks_data('data/mouth.p', output_siz
 
 # define CNN model
 model = Kao_Onet(input_shape, output_size)
+# model = simple_nodropout_CNN(input_shape, output_size)
 model.compile(loss='mse', optimizer = 'adam', metrics=['mse'])
 model.summary()
 

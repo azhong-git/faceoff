@@ -92,6 +92,8 @@ def augment_data(face_landmarks,
                  translate_y_ratio = 0.1,              # translate ratio of part bounding box in y direction
                  output_bounding_box_part = 'face',    # center of output
                  output_size = (64, 64),
+                 only_fliplr = False,
+                 shrink_x_y = None
 ):
     import random
     random.seed()
@@ -121,13 +123,16 @@ def augment_data(face_landmarks,
             # randomly translate image by ratio
             translate_x = int((random.random()*2-1) * translate_x_ratio * output_size[0] + 0.5)
             translate_y = int((random.random()*2-1) * translate_y_ratio * output_size[1] + 0.5)
-            translate_x = max(min(image.shape[1], translate_x), 0)
-            translate_y = max(min(image.shape[0], translate_y), 0)
+            translate_x = max(min(image.shape[1]-output_center[0]-half_output_dim_x-1, translate_x),
+                              half_output_dim_x - output_center[0])
+            translate_y = max(min(image.shape[0]-output_center[1]-half_output_dim_y-1, translate_y),
+                              half_output_dim_y - output_center[1])
             image = image[output_center[1] - half_output_dim_y + translate_y: output_center[1] + half_output_dim_y + translate_y,
                           output_center[0] - half_output_dim_x + translate_x: output_center[0] + half_output_dim_x + translate_x]
             landmarks = (landmarks - np.array([output_center[0] - half_output_dim_x + translate_x,
                                                output_center[1] - half_output_dim_y + translate_y]))
-            output_face_landmarks.append(FaceLandmark(image, landmarks, fl.landmark_type))
+            if not only_fliplr:
+                output_face_landmarks.append(FaceLandmark(image, landmarks, fl.landmark_type))
             if fliplr:
                 image_flipped = np.fliplr(image)
                 landmarks_flipped = (np.array([image.shape[1]-1, 0]) - landmarks) * np.array([1, -1])
@@ -139,21 +144,20 @@ def augment_data(face_landmarks,
 
 face_landmarks_dict = {}
 # load muct clm data through https://github.com/azhongwl/clmtools; around 600 faces, ~100 in the wild of varying poses
-face_landmarks_dict['muct_clmtools'] = prepare_data('/Users/azhong/face/clmtools/pdm_builder/data/images/',
-                                               '/Users/azhong/face/clmtools/pdm_builder/data/annotations.csv',
-                                               'muct_clmtools')
+face_landmarks_dict['muct_clmtools'] = prepare_data('/Users/azhong/face/data/muct_clmtools/images/',
+                                                    '/Users/azhong/face/data/muct_clmtools/annotations.csv',
+                                                    'muct_clmtools')
 # load original muct data from https://github.com/StephenMilborrow/muct: 3500 center-looking faces captured in lab with varying lighting conditions
-face_landmarks_dict['muct'] = prepare_data('/Users/azhong/face/clmtools/pdm_builder/data/images/',
-                                           '/Users/azhong/face/clmtools/pdm_builder/data/muct-landmarks/muct76-opencv.csv',
+face_landmarks_dict['muct'] = prepare_data('/Users/azhong/face/data/muct/images/',
+                                           '/Users/azhong/face/data/muct/muct76-opencv.csv',
                                            'muct')
-
 # load lpfw data https://neerajkumar.org/databases/lfpw: 600 faces in the wild with varying poses
-face_landmarks_dict['lfpw_train'] = prepare_data('/Users/azhong/Downloads/lfpw_pruned',
-                                                '/Users/azhong/Downloads/kbvt_lfpw_v1_train.csv',
+face_landmarks_dict['lfpw_train'] = prepare_data('/Users/azhong/face/data/lfpw_pruned/images/',
+                                                 '/Users/azhong/face/data/lfpw_pruned/kbvt_lfpw_v1_train.csv',
+                                                 'lfpw')
+face_landmarks_dict['lfpw_test'] = prepare_data('/Users/azhong/face/data/lfpw_pruned/images/',
+                                                '/Users/azhong/face/data/lfpw_pruned/kbvt_lfpw_v1_test.csv',
                                                 'lfpw')
-face_landmarks_dict['lfpw_test'] = prepare_data('/Users/azhong/Downloads/lfpw_pruned',
-                                               '/Users/azhong/Downloads/kbvt_lfpw_v1_test.csv',
-                                               'lfpw')
 
 face_landmarks = []
 for key in face_landmarks_dict.keys():
@@ -164,50 +168,51 @@ for fl in face_landmarks:
 np.random.shuffle(face_landmarks)
 augment_size = 5
 flip = True
-face_landmarks_augmented = augment_data(face_landmarks,
-                                        augment_size,
-                                        flip,
-                                        'face', 5,
-                                        'face', 64, 0.1,
-                                        'face', 0.2, 0.2,
-                                        'face', (64, 64))
+# face_landmarks_augmented = augment_data(face_landmarks,
+#                                         augment_size,
+#                                         flip,
+#                                         'face', 5,
+#                                         'face', 64, 0.1,
+#                                         'face', 0.2, 0.2,
+#                                         'face', (64, 64))
 mouth_landmarks_augmented = augment_data(face_landmarks,
                                          augment_size,
                                          flip,
                                          'mouth', 5,
                                          'face', 128, 0.1,
-                                         'mouth', 0.2, 0.2,
-                                         'mouth', (64, 64))
-left_eye_landmarks_augmented = augment_data(face_landmarks,
-                                            augment_size,
-                                            flip,
-                                            'left_eye', 10,
-                                            'face', 128, 0.1,
-                                            'left_eye', 0.2, 0.2,
-                                            'left_eye', (32, 32))
-right_eye_landmarks_augmented = augment_data(face_landmarks,
-                                             augment_size,
-                                             flip,
-                                             'right_eye', 10,
-                                             'face', 128, 0.1,
-                                             'right_eye', 0.2, 0.2,
-                                             'right_eye', (32, 32))
+                                         'mouth', 0.2, 0.3,
+                                         'mouth', (64, 64),
+                                         False)
+# left_eye_landmarks_augmented = augment_data(face_landmarks,
+#                                             augment_size,
+#                                             False,
+#                                             'left_eye', 10,
+#                                             'face', 128, 0.2,
+#                                             'left_eye', 0.3, 0.3,
+#                                             'left_eye', (32, 32))
+# right_eye_landmarks_augmented = augment_data(face_landmarks,
+#                                              augment_size,
+#                                              True,
+#                                              'right_eye', 10,
+#                                              'face', 128, 0.2,
+#                                              'right_eye', 0.3, 0.3,
+#                                              'right_eye', (32, 32),
+#                                              True)
+# eye_landmarks_augmented = np.concatenate((left_eye_landmarks_augmented, right_eye_landmarks_augmented))
 validation_split = 0.2
 if flip == True:
     train_size = int(len(face_landmarks) * augment_size * 2 * (1-validation_split))
 else:
     train_size = int(len(face_landmarks) * augment_size * (1-validation_split))
+# eye_train_size = int(len(face_landmarks) * augment_size * 2 * (1-validation_split))
+# np.random.shuffle(eye_landmarks_augmented[:train_size])
 np.random.shuffle(mouth_landmarks_augmented[:train_size])
-np.random.shuffle(left_eye_landmarks_augmented[:train_size])
-np.random.shuffle(right_eye_landmarks_augmented[:train_size])
-np.random.shuffle(face_landmarks_augmented[:train_size])
+# np.random.shuffle(face_landmarks_augmented[:train_size])
 
 import pickle
-# pickle.dump({'train_size': train_size, 'data': mouth_landmarks_augmented},
-#             open('data/mouth.p', 'wb'))
-# pickle.dump({'train_size': train_size, 'data': left_eye_landmarks_augmented},
-#             open('data/leye.p', 'wb'))
-# pickle.dump({'train_size': train_size, 'data': right_eye_landmarks_augmented},
-#             open('data/reye.p', 'wb'))
-pickle.dump({'train_size': train_size, 'data': face_landmarks_augmented},
-             open('data/face.p', 'wb'))
+pickle.dump({'train_size': train_size, 'data': mouth_landmarks_augmented},
+            open('data/mouth.p', 'wb'))
+# pickle.dump({'train_size': eye_train_size, 'data': eye_landmarks_augmented},
+#             open('data/eye.p', 'wb'))
+# pickle.dump({'train_size': train_size, 'data': face_landmarks_augmented},
+#              open('data/face.p', 'wb'))
