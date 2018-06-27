@@ -44,7 +44,7 @@ def convert_landmarks(landmarks_a, landmark_type_a, landmark_type_b):
                        34: 42, 32: 45, 73: 43, 72: 44, 74: 47, 75: 46,
                        67: 30, 41: 33,
                        48: 48, 54: 54, 51: 51, 57: 57, 64: 62, 61: 66}
-        elif len(landmarks_b) == 66:
+        elif len(landmarks_a) == 66:
             mapping = {0: 0, 7: 8, 13: 16,
                        27: 36, 29: 39, 68: 37, 69: 38, 70: 40, 71: 41,
                        34: 42, 32: 45, 73: 43, 72: 44, 74: 47, 75: 46,

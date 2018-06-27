@@ -8,6 +8,38 @@ from face_landmarks import flip_landmarks
 
 MULTIPIE_SELECT_LIGHTING = 5
 
+class MacOSFile(object):
+    def __init__(self, f):
+        self.f = f
+
+    def __getattr__(self, item):
+        return getattr(self.f, item)
+
+    def read(self, n):
+        # print("reading total_bytes=%s" % n, flush=True)
+        if n >= (1 << 31):
+            buffer = bytearray(n)
+            idx = 0
+            while idx < n:
+                batch_size = min(n - idx, 1 << 31 - 1)
+                # print("reading bytes [%s,%s)..." % (idx, idx + batch_size), end="", flush=True)
+                buffer[idx:idx + batch_size] = self.f.read(batch_size)
+                # print("done.", flush=True)
+                idx += batch_size
+            return buffer
+        return self.f.read(n)
+
+    def write(self, buffer):
+        n = len(buffer)
+        print("writing total_bytes=%s..." % n, flush=True)
+        idx = 0
+        while idx < n:
+            batch_size = min(n - idx, 1 << 31 - 1)
+            print("writing bytes [%s, %s)... " % (idx, idx + batch_size), end="", flush=True)
+            self.f.write(buffer[idx:idx + batch_size])
+            print("done.", flush=True)
+            idx += batch_size
+
 def prepare_data(data_path, annotation_path, landmark_type, to_gray = True):
     face_landmark_list = []
     if landmark_type == 'muct_clmtools':
@@ -260,8 +292,14 @@ np.random.shuffle(mouth_landmarks_augmented[:train_size])
 # np.random.shuffle(face_landmarks_augmented[:train_size])
 
 import pickle
-pickle.dump({'train_size': train_size, 'data': mouth_landmarks_augmented},
-            open('data/mouth.p', 'wb'))
+from sys import platform
+if platform == 'darwin':
+    pickle.dump({'train_size': train_size, 'data': mouth_landmarks_augmented},
+                MacOSFile(open('data/mouth.p', 'wb')), protocol=4)
+else:
+    pickle.dump({'train_size': train_size, 'data': mouth_landmarks_augmented},
+                open('data/mouth.p', 'wb'), protocol=4)
+
 # pickle.dump({'train_size': eye_train_size, 'data': eye_landmarks_augmented},
 #             open('data/eye_{}_{}.p'.format(face_width, eye_width), 'wb'))
 # pickle.dump({'train_size': train_size, 'data': face_landmarks_augmented},
