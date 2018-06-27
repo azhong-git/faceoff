@@ -1,9 +1,12 @@
 import os
 import cv2
 import numpy as np
+import re
 
 from face_data import FaceData, FaceLandmark
 from face_landmarks import flip_landmarks
+
+MULTIPIE_SELECT_LIGHTING = 5
 
 def prepare_data(data_path, annotation_path, landmark_type, to_gray = True):
     face_landmark_list = []
@@ -75,6 +78,48 @@ def prepare_data(data_path, annotation_path, landmark_type, to_gray = True):
                     image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
                 face_landmark = FaceLandmark(image, landmarks, landmark_type)
                 face_landmark_list.append(face_landmark)
+    elif landmark_type == 'multipie':
+        import scipy.io as sio
+        import glob
+        import random
+        camera_labels = sorted(os.listdir(annotation_path))
+        camera_labels = [s for s in camera_labels if not s.startswith('.')]
+        image_count = 0
+        for camera_label in camera_labels:
+            label_filenames = sorted(os.listdir(os.path.join(annotation_path, camera_label)))
+            for label_filename in label_filenames:
+                re_result = re.search('(.+)_(.+)_(.+)_(.+)_(.+)_lm.mat', label_filename)
+                part_name = label_filename[:-7]
+                assert re_result
+                subject_id = re_result.group(1)
+                session_number = re_result.group(2)
+                recording_number = re_result.group(3)
+                assert camera_label == re_result.group(4)
+                image_number = re_result.group(5)
+                full_filename = os.path.join(annotation_path, camera_label, label_filename)
+                assert os.path.isfile(full_filename)
+                landmarks = sio.loadmat(full_filename)['pts']
+                if len(landmarks) != 68 and len(landmarks) != 66:
+                    continue
+                image_filename = os.path.join(data_path,
+                                              'session'+session_number,
+                                              'multiview',
+                                              subject_id,
+                                              recording_number,
+                                              camera_label[0:2]+'_'+camera_label[2],
+                                              part_name+'.png')
+                image_filenames = glob.glob(image_filename[:-6] + '*')
+                random.shuffle(image_filenames)
+                image_count += 1
+                if (image_count % 500) == 499:
+                    print('Loading Multipie ...', image_count)
+                #     return face_landmark_list # only for debugging
+                for image_filename_picked in image_filenames[0:MULTIPIE_SELECT_LIGHTING]:
+                    image = cv2.imread(image_filename_picked)
+                    if to_gray:
+                        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+                    face_landmark = FaceLandmark(image, landmarks, landmark_type)
+                    face_landmark_list.append(face_landmark)
     else:
         assert False, '{} not supported'
     return face_landmark_list
@@ -158,11 +203,14 @@ face_landmarks_dict['lfpw_train'] = prepare_data('/Users/azhong/face/data/lfpw_p
 face_landmarks_dict['lfpw_test'] = prepare_data('/Users/azhong/face/data/lfpw_pruned/images/',
                                                 '/Users/azhong/face/data/lfpw_pruned/kbvt_lfpw_v1_test.csv',
                                                 'lfpw')
+# load multipie data: 5302 faces x 20 lighting conditions from various poses
+face_landmarks_dict['multipie'] = prepare_data('/Volumes/NO NAME/Multi-Pie/data/',
+                                              '/Users/azhong/face/data/multipie/labels',
+                                               'multipie')
 
 face_landmarks = []
 for key in face_landmarks_dict.keys():
     face_landmarks.extend(face_landmarks_dict[key])
-
 for fl in face_landmarks:
     fl.convert_to_landmark_type('muct')
 np.random.shuffle(face_landmarks)
@@ -178,25 +226,27 @@ flip = True
 mouth_landmarks_augmented = augment_data(face_landmarks,
                                          augment_size,
                                          flip,
-                                         'mouth', 5,
+                                         'mouth', 10,
                                          'face', 128, 0.1,
                                          'mouth', 0.2, 0.3,
                                          'mouth', (64, 64),
                                          False)
+# face_width = 256
+# eye_width = 64
 # left_eye_landmarks_augmented = augment_data(face_landmarks,
 #                                             augment_size,
 #                                             False,
 #                                             'left_eye', 10,
-#                                             'face', 128, 0.2,
+#                                             'face', face_width, 0.2,
 #                                             'left_eye', 0.3, 0.3,
-#                                             'left_eye', (32, 32))
+#                                             'left_eye', (eye_width, eye_width))
 # right_eye_landmarks_augmented = augment_data(face_landmarks,
 #                                              augment_size,
 #                                              True,
 #                                              'right_eye', 10,
-#                                              'face', 128, 0.2,
+#                                              'face', face_width, 0.2,
 #                                              'right_eye', 0.3, 0.3,
-#                                              'right_eye', (32, 32),
+#                                              'right_eye', (eye_width, eye_width),
 #                                              True)
 # eye_landmarks_augmented = np.concatenate((left_eye_landmarks_augmented, right_eye_landmarks_augmented))
 validation_split = 0.2
@@ -205,7 +255,7 @@ if flip == True:
 else:
     train_size = int(len(face_landmarks) * augment_size * (1-validation_split))
 # eye_train_size = int(len(face_landmarks) * augment_size * 2 * (1-validation_split))
-# np.random.shuffle(eye_landmarks_augmented[:train_size])
+# np.random.shuffle(eye_landmarks_augmented[:eye_train_size])
 np.random.shuffle(mouth_landmarks_augmented[:train_size])
 # np.random.shuffle(face_landmarks_augmented[:train_size])
 
@@ -213,6 +263,6 @@ import pickle
 pickle.dump({'train_size': train_size, 'data': mouth_landmarks_augmented},
             open('data/mouth.p', 'wb'))
 # pickle.dump({'train_size': eye_train_size, 'data': eye_landmarks_augmented},
-#             open('data/eye.p', 'wb'))
+#             open('data/eye_{}_{}.p'.format(face_width, eye_width), 'wb'))
 # pickle.dump({'train_size': train_size, 'data': face_landmarks_augmented},
 #              open('data/face.p', 'wb'))

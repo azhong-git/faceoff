@@ -36,6 +36,26 @@ def convert_landmarks(landmarks_a, landmark_type_a, landmark_type_b):
         for i in mapping.keys():
             landmarks_b[i] = landmarks_a[mapping[i]-1]
         return np.array(landmarks_b)
+    elif landmark_type_b == 'muct' and landmark_type_a == 'multipie':
+        landmarks_b = np.ones((76 ,2)) * (-1)
+        if len(landmarks_a) == 68:
+            mapping = {0: 0, 7: 8, 13: 16,
+                       27: 36, 29: 39, 68: 37, 69: 38, 70: 40, 71: 41,
+                       34: 42, 32: 45, 73: 43, 72: 44, 74: 47, 75: 46,
+                       67: 30, 41: 33,
+                       48: 48, 54: 54, 51: 51, 57: 57, 64: 62, 61: 66}
+        elif len(landmarks_b) == 66:
+            mapping = {0: 0, 7: 8, 13: 16,
+                       27: 36, 29: 39, 68: 37, 69: 38, 70: 40, 71: 41,
+                       34: 42, 32: 45, 73: 43, 72: 44, 74: 47, 75: 46,
+                       67: 30, 41: 33,
+                       48: 48, 54: 54, 51: 51, 57: 57, 64: 61, 61: 64}
+        else:
+            assert False, 'should only accept multipie labels with 66 or 68'
+        for i in mapping.keys():
+            landmarks_b[i] = landmarks_a[mapping[i]]
+        return np.array(landmarks_b)
+
     else:
         assert False, 'conversion from {} to {} not supported'.format(landmark_type_a, landmark_type_b)
 
@@ -56,6 +76,11 @@ def get_landmark_index_dict(landmark_type):
         landmark_index_dict['left_eye']  = [8, 10, 12, 13, 16]
         landmark_index_dict['right_eye']  = [9, 11, 14, 15, 17]
         landmark_index_dict['mouth']  = [22, 23, 24, 25, 26, 27]
+    elif landmark_type == 'multipie':
+        landmark_index_dict['face'] = range(68)
+        landmark_index_dict['left_eye'] = [36, 37, 38, 39, 40, 41]
+        landmark_index_dict['right_eye'] = [42, 43, 44, 45, 46, 47]
+        landmark_index_dict['mouth'] = [48, 51, 54, 57, 62, 66]
     else:
         assert False, 'landmark type {} not supported'.format(landmark_type)
     return landmark_index_dict
