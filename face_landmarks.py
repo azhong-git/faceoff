@@ -67,7 +67,9 @@ def get_landmark_index_dict(landmark_type):
         landmark_index_dict['right_eye'] = [28, 29, 30, 31, 32, 67, 68, 69, 70]
         landmark_index_dict['mouth'] = range(44, 62)
     elif landmark_type == 'muct':
-        landmark_index_dict['face'] = range(76)
+        # landmark_index_dict['face'] = range(76)
+        # not to include jawline which could shift side face by a lot
+        landmark_index_dict['face'] = [7,] + list(range(15, 76))
         landmark_index_dict['left_eye']  = [27, 28, 29, 30, 31, 68, 69, 70, 71]
         landmark_index_dict['right_eye'] = [32, 33, 34, 35, 36, 72, 73, 74, 75]
         landmark_index_dict['mouth'] = range(48, 67)
