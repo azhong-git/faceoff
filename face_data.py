@@ -1,4 +1,5 @@
 import numpy as np
+import cv2
 from face_landmarks import convert_landmarks, get_landmark_index_dict
 
 class FaceLandmark:
@@ -49,6 +50,13 @@ class FaceLandmark:
             self.landmarks_homogenous = np.insert(self.landmarks, 2, 1.0, axis = 1)
             self.landmark_type = landmark_type
             self.landmark_index_dict = get_landmark_index_dict(landmark_type)
+
+    def cvtColor(self, code):
+        self.image = cv2.cvtColor(self.image, code)
+        if len(self.image.shape) < 3:
+            self.channels = 1
+        else:
+            self.channels = self.image.shape[2]
 
 class FaceData:
     def __init__(self):
