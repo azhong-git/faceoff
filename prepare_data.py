@@ -2,11 +2,19 @@ import os
 import cv2
 import numpy as np
 import re
+import pickle
+from sys import platform
 
 from face_data import FaceData, FaceLandmark
 from face_landmarks import flip_landmarks
 
 MULTIPIE_SELECT_LIGHTING = 5
+to_gray = False
+use_preload_images = True
+if to_gray:
+    color = 'gray'
+else:
+    color = 'bgr'
 
 class MacOSFile(object):
     def __init__(self, f):
@@ -40,7 +48,7 @@ class MacOSFile(object):
             print("done.", flush=True)
             idx += batch_size
 
-def prepare_data(data_path, annotation_path, landmark_type, to_gray = True):
+def prepare_data(data_path, annotation_path, landmark_type):
     face_landmark_list = []
     if landmark_type == 'muct_clmtools':
         landmark_size = 71
@@ -53,8 +61,6 @@ def prepare_data(data_path, annotation_path, landmark_type, to_gray = True):
                     continue
                 landmarks = np.array([[float(splitted[i*3+1]), float(splitted[i*3+2])] for i in range(landmark_size)])
                 image = cv2.imread(filepath)
-                if to_gray:
-                    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
                 face_landmark = FaceLandmark(image, landmarks, landmark_type)
                 face_landmark_list.append(face_landmark)
     elif landmark_type == 'muct':
@@ -81,8 +87,6 @@ def prepare_data(data_path, annotation_path, landmark_type, to_gray = True):
                     landmarks.append([x,y])
                 landmarks = np.array(landmarks)
                 image = cv2.imread(filepath)
-                if to_gray:
-                    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
                 face_landmark = FaceLandmark(image, landmarks, landmark_type)
                 face_landmark_list.append(face_landmark)
     elif landmark_type == 'lfpw':
@@ -106,8 +110,6 @@ def prepare_data(data_path, annotation_path, landmark_type, to_gray = True):
                     landmarks.append([x, y])
                 landmarks = np.array(landmarks)
                 image = cv2.imread(filepath)
-                if to_gray:
-                    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
                 face_landmark = FaceLandmark(image, landmarks, landmark_type)
                 face_landmark_list.append(face_landmark)
     elif landmark_type == 'multipie':
@@ -148,8 +150,8 @@ def prepare_data(data_path, annotation_path, landmark_type, to_gray = True):
                 #     return face_landmark_list # only for debugging
                 for image_filename_picked in image_filenames[0:MULTIPIE_SELECT_LIGHTING]:
                     image = cv2.imread(image_filename_picked)
-                    if to_gray:
-                        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+                    if camera_label == '081' or camera_label == '191':
+                        image = np.flipud(image)
                     face_landmark = FaceLandmark(image, landmarks, landmark_type)
                     face_landmark_list.append(face_landmark)
     else:
@@ -176,7 +178,10 @@ def augment_data(face_landmarks,
     random.seed()
     output_face_landmarks = []
     assert output_size[0] % 2 == 0 and output_size[1] % 2 ==0, 'output size needs to be even'
-    for fl in face_landmarks:
+    size = len(face_landmarks)
+    for fl_ind in range(size, 0, -1):
+        fl = face_landmarks[fl_ind-1]
+        # fl = face_landmarks.pop(-1)
         x1, y1, x2, y2 = fl.get_bounding_box(rotate_bounding_box_part)
         rotate_center = ((x1 + x2) / 2.0, (y1 + y2) / 2.0)
         x1, y1, x2, y2 = fl.get_bounding_box(scale_bounding_box_part)
@@ -219,52 +224,84 @@ def augment_data(face_landmarks,
     return np.array(output_face_landmarks)
 
 
-face_landmarks_dict = {}
-# load muct clm data through https://github.com/azhongwl/clmtools; around 600 faces, ~100 in the wild of varying poses
-face_landmarks_dict['muct_clmtools'] = prepare_data('/Users/azhong/face/data/muct_clmtools/images/',
-                                                    '/Users/azhong/face/data/muct_clmtools/annotations.csv',
-                                                    'muct_clmtools')
-# load original muct data from https://github.com/StephenMilborrow/muct: 3500 center-looking faces captured in lab with varying lighting conditions
-face_landmarks_dict['muct'] = prepare_data('/Users/azhong/face/data/muct/images/',
-                                           '/Users/azhong/face/data/muct/muct76-opencv.csv',
-                                           'muct')
-# load lpfw data https://neerajkumar.org/databases/lfpw: 600 faces in the wild with varying poses
-face_landmarks_dict['lfpw_train'] = prepare_data('/Users/azhong/face/data/lfpw_pruned/images/',
-                                                 '/Users/azhong/face/data/lfpw_pruned/kbvt_lfpw_v1_train.csv',
-                                                 'lfpw')
-face_landmarks_dict['lfpw_test'] = prepare_data('/Users/azhong/face/data/lfpw_pruned/images/',
-                                                '/Users/azhong/face/data/lfpw_pruned/kbvt_lfpw_v1_test.csv',
-                                                'lfpw')
-# load multipie data: 5302 faces x 20 lighting conditions from various poses
-face_landmarks_dict['multipie'] = prepare_data('/Volumes/NO NAME/Multi-Pie/data/',
-                                              '/Users/azhong/face/data/multipie/labels',
-                                               'multipie')
+if not use_preload_images or not os.path.isfile('data/face_landmarks_{}.p'.format(color)):
+    face_landmarks_dict = {}
+    # load muct clm data through https://github.com/azhongwl/clmtools; around 600 faces, ~100 in the wild of varying poses
+    face_landmarks_dict['muct_clmtools'] = prepare_data('/Users/azhong/face/data/muct_clmtools/images/',
+                                                        '/Users/azhong/face/data/muct_clmtools/annotations.csv',
+                                                        'muct_clmtools')
+    # load original muct data from https://github.com/StephenMilborrow/muct: 3500 center-looking faces captured in lab with varying lighting conditions
+    face_landmarks_dict['muct'] = prepare_data('/Users/azhong/face/data/muct/images/',
+                                               '/Users/azhong/face/data/muct/muct76-opencv.csv',
+                                               'muct')
+    # load lpfw data https://neerajkumar.org/databases/lfpw: 600 faces in the wild with varying poses
+    face_landmarks_dict['lfpw_train'] = prepare_data('/Users/azhong/face/data/lfpw_pruned/images/',
+                                                     '/Users/azhong/face/data/lfpw_pruned/kbvt_lfpw_v1_train.csv',
+                                                     'lfpw')
+    face_landmarks_dict['lfpw_test'] = prepare_data('/Users/azhong/face/data/lfpw_pruned/images/',
+                                                    '/Users/azhong/face/data/lfpw_pruned/kbvt_lfpw_v1_test.csv',
+                                                    'lfpw')
+    # load multipie data: 5302 faces x 20 lighting conditions from various poses
+    face_landmarks_dict['multipie'] = prepare_data('/Volumes/NO NAME/Multi-Pie/data/',
+                                                  '/Users/azhong/face/data/multipie/labels',
+                                                   'multipie')
+    face_landmarks = []
+    for key in face_landmarks_dict.keys():
+        face_landmarks.extend(face_landmarks_dict[key])
+    for fl in face_landmarks:
+        fl.convert_to_landmark_type('muct')
+    np.random.shuffle(face_landmarks)
+    # print('before dumping')
+    # if platform == 'darwin':
+    #     pickle.dump(face_landmarks, MacOSFile(open('data/face_landmarks_bgr.p', 'wb')), protocol = 4)
+    # else:
+    #     pickle.dump(face_landmarks, open('data/face_landmarks_bgr.p', 'wb'), protocol = 4)
+    # print('converting...')
+    if to_gray:
+        for fl in face_landmarks:
+            fl.cvtColor(cv2.COLOR_BGR2GRAY)
+    # if platform == 'darwin':
+    #     pickle.dump(face_landmarks, MacOSFile(open('data/face_landmarks_gray.p', 'wb')), protocol = 4)
+    # else:
+    #     pickle.dump(face_landmarks, open('data/face_landmarks_gray.p', 'wb'), protocol = 4)
+else:
+    if platform == 'darwin':
+        face_landmarks = pickle.load(MacOSFile(open('data/face_landmarks_bgr.p', 'rb')))
+    else:
+        face_landmarks = pickle.load(open('data/face_landmarks_bgr.p', 'rb'))
+    for fl in face_landmarks:
+        fl.cvtColor(cv2.COLOR_BGR2GRAY)
+    if platform == 'darwin':
+        pickle.dump(face_landmarks, MacOSFile(open('data/face_landmarks_gray.p', 'rb')), protocol = 4)
+    else:
+        pickle.dump(face_landmarks, open('data/face_landmarks_gray.p', 'rb'), protocol = 4)
 
-face_landmarks = []
-for key in face_landmarks_dict.keys():
-    face_landmarks.extend(face_landmarks_dict[key])
-for fl in face_landmarks:
-    fl.convert_to_landmark_type('muct')
-np.random.shuffle(face_landmarks)
-augment_size = 5
+augment_size = 4
 flip = True
+face_width = 64
+object_width = 32
+validation_split = 0.2
+if flip == True:
+    train_size = int(len(face_landmarks) * augment_size * 2 * (1-validation_split))
+else:
+    train_size = int(len(face_landmarks) * augment_size * (1-validation_split))
+# eye_train_size = int(len(face_landmarks) * augment_size * 2 * (1-validation_split))
+print('start augmenting data')
 # face_landmarks_augmented = augment_data(face_landmarks,
 #                                         augment_size,
 #                                         flip,
-#                                         'face', 5,
-#                                         'face', 64, 0.1,
+#                                         'face', 10,
+#                                         'face', face_width, 0.1,
 #                                         'face', 0.2, 0.2,
-#                                         'face', (64, 64))
+#                                         'face', (object_width, object_width))
 mouth_landmarks_augmented = augment_data(face_landmarks,
                                          augment_size,
                                          flip,
                                          'mouth', 10,
-                                         'face', 128, 0.1,
+                                         'face', face_width, 0.1,
                                          'mouth', 0.2, 0.3,
-                                         'mouth', (64, 64),
-                                         False)
-# face_width = 256
-# eye_width = 64
+                                         'mouth', (object_width, object_width))
+print('face: {}'.format(len(face_landmarks)))
 # left_eye_landmarks_augmented = augment_data(face_landmarks,
 #                                             augment_size,
 #                                             False,
@@ -281,26 +318,22 @@ mouth_landmarks_augmented = augment_data(face_landmarks,
 #                                              'right_eye', (eye_width, eye_width),
 #                                              True)
 # eye_landmarks_augmented = np.concatenate((left_eye_landmarks_augmented, right_eye_landmarks_augmented))
-validation_split = 0.2
-if flip == True:
-    train_size = int(len(face_landmarks) * augment_size * 2 * (1-validation_split))
-else:
-    train_size = int(len(face_landmarks) * augment_size * (1-validation_split))
-# eye_train_size = int(len(face_landmarks) * augment_size * 2 * (1-validation_split))
-# np.random.shuffle(eye_landmarks_augmented[:eye_train_size])
+print('finished augmenting data')
 np.random.shuffle(mouth_landmarks_augmented[:train_size])
 # np.random.shuffle(face_landmarks_augmented[:train_size])
+# np.random.shuffle(eye_landmarks_augmented[:eye_train_size])
 
-import pickle
-from sys import platform
 if platform == 'darwin':
     pickle.dump({'train_size': train_size, 'data': mouth_landmarks_augmented},
-                MacOSFile(open('data/mouth.p', 'wb')), protocol=4)
+                MacOSFile(open('data/mouth_{}_{}_{}.p'.format(color, face_width, object_width), 'wb')), protocol=4)
+    # pickle.dump({'train_size': train_size, 'data': face_landmarks_augmented},
+    #             MacOSFile(open('data/face.p', 'wb')), protocol=4)
+    # pickle.dump({'train_size': eye_train_size, 'data': eye_landmarks_augmented},
+    #             MacOSFile(open('data/eye_{}_{}_{}.p'.format(color, face_width, eye_width), 'wb')), protocol=4)
 else:
     pickle.dump({'train_size': train_size, 'data': mouth_landmarks_augmented},
-                open('data/mouth.p', 'wb'), protocol=4)
-
-# pickle.dump({'train_size': eye_train_size, 'data': eye_landmarks_augmented},
-#             open('data/eye_{}_{}.p'.format(face_width, eye_width), 'wb'))
-# pickle.dump({'train_size': train_size, 'data': face_landmarks_augmented},
-#              open('data/face.p', 'wb'))
+                open('data/mouth_{}_{}_{}.p'.format(color, face_width, object_width), 'wb'), protocol=4)
+    # pickle.dump({'train_size': train_size, 'data': face_landmarks_augmented},
+    #             open('data/face.p', 'wb'), protocol=4)
+    # pickle.dump({'train_size': eye_train_size, 'data': eye_landmarks_augmented},
+    #             open('data/eye_{}_{}_{}.p'.format(color, face_width, eye_width), 'wb'), protocol=4)
