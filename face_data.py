@@ -3,18 +3,19 @@ import cv2
 from face_landmarks import convert_landmarks, get_landmark_index_dict
 
 class FaceLandmark:
-    def __init__(self, image, landmarks, landmark_type):
+    def __init__(self, landmarks, landmark_type, image, shape):
         self.image = image
-        self.rows = image.shape[0]
-        self.cols = image.shape[1]
-        if len(image.shape) < 3:
+        self.rows = shape[0]
+        self.cols = shape[1]
+        if len(shape) < 3:
             self.channels = 1
         else:
-            self.channels = image.shape[2]
+            self.channels = shape[2]
         self.landmarks = np.array(landmarks)
         self.landmarks_homogenous = np.insert(self.landmarks, 2, 1.0, axis = 1)
         self.landmark_type = landmark_type
         self.landmark_index_dict = get_landmark_index_dict(landmark_type)
+        self.image_path = None
         return
 
     def get_bounding_box(self, part = 'face'):
@@ -26,14 +27,14 @@ class FaceLandmark:
         x2, y2 = np.amax(landmarks, axis = 0)
         x1, y1 = np.amin(landmarks, axis = 0)
         # assert x1 >=0 and y1 >=0
-        x1 = min(int(x1 + 0.5), self.cols - 1)
-        x2 = min(int(x2 + 0.5), self.cols - 1)
-        # extend further to forehead
+        x1 = min(int(round(x1)), self.cols - 1)
+        x2 = min(int(round(x2)), self.cols - 1)
         if part == 'face':
-            y1 = max(int(y1 - (y2 - y1) * 0.2 + 0.5), 0)
+            # extend further to forehead by a multiplier = 0.2
+            y1 = max(int(round(y1 - (y2 - y1) * 0.2)), 0)
         else:
-            y1 = min(int(y1 + 0.5), self.rows - 1)
-        y2 = min(int(y2 + 0.5), self.rows - 1)
+            y1 = min(int(round(y1)), self.rows - 1)
+        y2 = min(int(round(y2)), self.rows - 1)
         return [x1, y1, x2, y2]
 
     def get_distance(self, landmark_a, landmark_b):
@@ -57,6 +58,12 @@ class FaceLandmark:
             self.channels = 1
         else:
             self.channels = self.image.shape[2]
+
+    def set_image_path(self, image_path):
+        self.image_path = image_path
+
+    def get_image_path(self):
+        return self.image_path
 
 class FaceData:
     def __init__(self):
