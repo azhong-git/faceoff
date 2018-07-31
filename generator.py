@@ -33,7 +33,7 @@ class LandmarkDictionaryIterator(Iterator):
             # rotate and scale
             M = cv2.getRotationMatrix2D(rotate_center, angle, ratio)
             image = cv2.imread(fl.get_image_path())
-            image = cv2.warpAffine(image, M, (fl.cols, fl.rows))
+            image = cv2.warpAffine(image, M, (fl.get_cols(), fl.get_rows()))
             landmarks = np.transpose(np.dot(M, np.transpose(fl.landmarks_homogenous)))
             x1, y1, x2, y2 = fl.get_bounding_box(self.generator.target_bounding_box_part)
             target_center = ((x1+x2)/2.0, (y1+y2)/2.0, 1)

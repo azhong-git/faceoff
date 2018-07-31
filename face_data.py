@@ -3,14 +3,12 @@ import cv2
 from face_landmarks import convert_landmarks, get_landmark_index_dict
 
 class FaceLandmark:
-    def __init__(self, landmarks, landmark_type, image, shape):
+    def __init__(self, landmarks, landmark_type, image=None):
+        # by default do not read image pixels and dimensions for reading speed
         self.image = image
-        self.rows = shape[0]
-        self.cols = shape[1]
-        if len(shape) < 3:
-            self.channels = 1
-        else:
-            self.channels = shape[2]
+        self.rows = None
+        self.cols = None
+        self.channels = None
         self.landmarks = np.array(landmarks)
         self.landmarks_homogenous = np.insert(self.landmarks, 2, 1.0, axis = 1)
         self.landmark_type = landmark_type
@@ -27,14 +25,14 @@ class FaceLandmark:
         x2, y2 = np.amax(landmarks, axis = 0)
         x1, y1 = np.amin(landmarks, axis = 0)
         # assert x1 >=0 and y1 >=0
-        x1 = min(int(round(x1)), self.cols - 1)
-        x2 = min(int(round(x2)), self.cols - 1)
+        x1 = min(int(round(x1)), self.get_cols() - 1)
+        x2 = min(int(round(x2)), self.get_cols() - 1)
         if part == 'face':
             # extend further to forehead by a multiplier = 0.2
             y1 = max(int(round(y1 - (y2 - y1) * 0.2)), 0)
         else:
-            y1 = min(int(round(y1)), self.rows - 1)
-        y2 = min(int(round(y2)), self.rows - 1)
+            y1 = min(int(round(y1)), self.get_rows() - 1)
+        y2 = min(int(round(y2)), self.get_rows() - 1)
         return [x1, y1, x2, y2]
 
     def get_distance(self, landmark_a, landmark_b):
@@ -64,6 +62,32 @@ class FaceLandmark:
 
     def get_image_path(self):
         return self.image_path
+
+    def load_shape(self):
+        if self.image is None:
+            image = cv2.imread(self.image_path)
+            shape = image.shape
+            self.cols = shape[1]
+            self.rows = shape[0]
+            if len(shape) < 3:
+                self.channels = 1
+            else:
+                self.channels = shape[2]
+
+    def get_cols(self):
+        if self.cols is None:
+            self.load_shape()
+        return self.cols
+
+    def get_rows(self):
+        if self.rows is None:
+            self.load_shape()
+        return self.rows
+
+    def get_channels(self):
+        if self.channels is None:
+            self.load_shape()
+        return self.channels
 
 class FaceData:
     def __init__(self):
