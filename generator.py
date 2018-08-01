@@ -3,14 +3,19 @@ import random
 import cv2
 from keras.preprocessing.image import Iterator
 
+from face_landmarks import flip_landmarks
+from face_data import FaceLandmark
+
 class LandmarkDictionaryIterator(Iterator):
     def __init__(self, face_landmark_list, face_landmark_indices,
                  image_face_landmark_data_generator,
-                 n, shuffle, target_size = (64, 64), batch_size=32, seed=None):
+                 n, shuffle, random_horizontal_flip,
+                 target_size = (64, 64), batch_size=32, seed=None):
         self.face_landmark_list = face_landmark_list
         self.face_landmark_indices = face_landmark_indices
         self.generator = image_face_landmark_data_generator
         self.shuffle = shuffle
+        self.random_horizontal_flip = random_horizontal_flip
         self.target_size = target_size
         self.batch_size = batch_size
         self.seed = seed
@@ -21,6 +26,18 @@ class LandmarkDictionaryIterator(Iterator):
         y = []
         for index in index_array:
             fl = self.face_landmark_list[index]
+            if fl.image is None:
+                image = cv2.imread(fl.get_image_path())
+            else:
+                image = fl.image
+            if self.random_horizontal_flip:
+                flip = random.choice([True, False])
+                if flip:
+                    image = np.fliplr(image)
+                    landmarks = (np.array([image.shape[1]-1, 0]) - fl.landmarks) * np.array([1, -1])
+                    flip_landmarks(landmarks, fl.landmark_type)
+                    fl = FaceLandmark(landmarks, fl.landmark_type, image)
+
             # rotation param: rotation center and angle
             x1, y1, x2, y2 = fl.get_bounding_box(self.generator.rotate_bounding_box_part)
             rotate_center = ((x1 + x2) / 2.0, (y1 + y2) / 2.0)
@@ -32,9 +49,9 @@ class LandmarkDictionaryIterator(Iterator):
             ratio = ((random.random()*2-1) * self.generator.scale_limit_ratio + 1) * scale_ratio
             # rotate and scale
             M = cv2.getRotationMatrix2D(rotate_center, angle, ratio)
-            image = cv2.imread(fl.get_image_path())
             image = cv2.warpAffine(image, M, (fl.get_cols(), fl.get_rows()))
             landmarks = np.transpose(np.dot(M, np.transpose(fl.landmarks_homogenous)))
+
             x1, y1, x2, y2 = fl.get_bounding_box(self.generator.target_bounding_box_part)
             target_center = ((x1+x2)/2.0, (y1+y2)/2.0, 1)
             target_center = np.dot(M, target_center)
@@ -52,10 +69,13 @@ class LandmarkDictionaryIterator(Iterator):
                               half_target_dim_y - target_center[1])
             image = image[target_center[1] - half_target_dim_y + translate_y: target_center[1] + half_target_dim_y + translate_y,
                           target_center[0] - half_target_dim_x + translate_x: target_center[0] + half_target_dim_x + translate_x]
-            if self.generator.preprocessing_function:
-                image = self.generator.preprocessing_function(image)
+
+
             landmarks = (landmarks - np.array([target_center[0] - half_target_dim_x + translate_x,
                                                target_center[1] - half_target_dim_y + translate_y]))
+            if self.generator.preprocessing_function:
+                image = self.generator.preprocessing_function(image)
+
             values = []
             for i in self.face_landmark_indices:
                 values.append(landmarks[i][0])
@@ -87,7 +107,7 @@ class ImageFaceLandmarkDataGenerator(object):
                  translate_y_ratio=0,
                  target_bounding_box_part='face',
                  shuffle=True,
-                 horizontal_flip=False,
+                 random_horizontal_flip=False,
                  preprocessing_function=None
                  ):
         self.rotate_bounding_box_part = rotate_bounding_box_part
@@ -99,7 +119,7 @@ class ImageFaceLandmarkDataGenerator(object):
         self.translate_y_ratio = translate_y_ratio
         self.target_bounding_box_part = target_bounding_box_part
         self.shuffle = shuffle
-        self.horizontal_flip = horizontal_flip
+        self.random_horizontal_flip = random_horizontal_flip
         self.preprocessing_function = preprocessing_function
 
     def flow(self,
@@ -125,6 +145,7 @@ class ImageFaceLandmarkDataGenerator(object):
                                           self,
                                           n,
                                           self.shuffle,
+                                          self.random_horizontal_flip,
                                           target_size,
                                           batch_size,
                                           seed)

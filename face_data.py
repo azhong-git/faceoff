@@ -21,7 +21,7 @@ class FaceLandmark:
         # print('landmarks are {}'.format(self.landmarks))
         # print('landmarks index dict are {}'.format(self.landmark_index_dict))
         # print('landmarks index dict are {}'.format(self.landmark_index_dict[part]))
-        landmarks = np.array([pt for pt in self.landmarks[self.landmark_index_dict[part]] if (pt-np.array([-1, -1])).any()])
+        landmarks = np.array([pt for pt in self.landmarks[self.landmark_index_dict[part]] if ((pt-np.array([-1, -1])).any() and (pt-np.array([self.get_cols(), -1])).any())])
         x2, y2 = np.amax(landmarks, axis = 0)
         x1, y1 = np.amin(landmarks, axis = 0)
         # assert x1 >=0 and y1 >=0
@@ -67,12 +67,14 @@ class FaceLandmark:
         if self.image is None:
             image = cv2.imread(self.image_path)
             shape = image.shape
-            self.cols = shape[1]
-            self.rows = shape[0]
-            if len(shape) < 3:
-                self.channels = 1
-            else:
-                self.channels = shape[2]
+        else:
+            shape = self.image.shape
+        self.cols = shape[1]
+        self.rows = shape[0]
+        if len(shape) < 3:
+            self.channels = 1
+        else:
+            self.channels = shape[2]
 
     def get_cols(self):
         if self.cols is None:

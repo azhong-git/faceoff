@@ -75,6 +75,14 @@ def preprocess_image(image):
     image = image * 2.0
     return image
 
+batch_size = 32
+input_shape = (32, 32, 3)
+random_horizontal_flip = True
+topic = 'mouth_12'
+output_size = int(topic.split('_')[-1])
+num_epochs = 1000
+patience = 50
+
 train_data_gen = ImageFaceLandmarkDataGenerator(rotate_bounding_box_part='face',
                                                 rotate_limit_in_degrees=10,
                                                 scale_bounding_box_part='face',
@@ -83,21 +91,16 @@ train_data_gen = ImageFaceLandmarkDataGenerator(rotate_bounding_box_part='face',
                                                 translate_x_ratio=0.2,
                                                 translate_y_ratio=0.3,
                                                 target_bounding_box_part='mouth',
+                                                random_horizontal_flip=random_horizontal_flip,
                                                 preprocessing_function=preprocess_image)
 val_data_gen = ImageFaceLandmarkDataGenerator(rotate_bounding_box_part='face',
                                               scale_bounding_box_part='face',
                                               scale_bounding_box_size=64,
                                               target_bounding_box_part='mouth',
                                               preprocessing_function=preprocess_image)
-batch_size = 32
-input_shape = (48, 48, 3)
-topic = 'mouth_12'
-output_size = int(topic.split('_')[-1])
-num_epochs = 1000
-patience = 50
 
 now = datetime.datetime.now()
-model_name = 'kao_onet_{}x{}x{}_{}_batch_{}'.format(input_shape[0], input_shape[1], input_shape[2], topic, batch_size)
+model_name = 'kao_onet_{}x{}x{}_{}_batch_{}_random_hflip_{}'.format(input_shape[0], input_shape[1], input_shape[2], topic, batch_size, random_horizontal_flip)
 
 base_path = 'models/' + model_name + '_'
 base_path += now.strftime("%Y_%m_%d_%H_%M_%S") + '/'
@@ -123,4 +126,4 @@ model.fit_generator(train_data_gen.flow(face_landmarks['train'], MUCT[topic], (i
                     epochs = num_epochs,
                     callbacks = callbacks,
                     verbose = 1,
-                    validation_data = val_data_gen.flow(face_landmarks['val'], MUCT[topic], (32, 32), batch_size))
+                    validation_data = val_data_gen.flow(face_landmarks['val'], MUCT[topic], (input_shape[0], input_shape[1]), batch_size))
