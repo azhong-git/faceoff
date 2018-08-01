@@ -46,7 +46,7 @@ face_landmarks_dict['train']['lfpw_test'], face_landmarks_dict['val']['lfpw_test
 # load multipie data: 5302 faces x 20 lighting conditions from various poses
 landmarks = prepare_data('/disk/multi-pie/Multi-Pie/data/',
                          '{}/multipie/labels'.format(data_dir),
-                         'multipie')
+                         'multipie', multipie_seed = seed)
 face_landmarks_dict['train']['multipie'], face_landmarks_dict['val']['multipie'] = shuffle_and_split(
     landmarks, validation_split, seed)
 

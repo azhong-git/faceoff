@@ -16,7 +16,7 @@ if to_gray:
 else:
     color = 'bgr'
 
-def prepare_data(data_path, annotation_path, landmark_type):
+def prepare_data(data_path, annotation_path, landmark_type, multipie_seed = None):
     face_landmark_list = []
     if landmark_type == 'muct_clmtools':
         landmark_size = 71
@@ -84,6 +84,7 @@ def prepare_data(data_path, annotation_path, landmark_type):
         import scipy.io as sio
         import glob
         import random
+        random.seed(multipie_seed)
         camera_labels = sorted(os.listdir(annotation_path))
         camera_labels = [s for s in camera_labels if not s.startswith('.')]
         image_count = 0
