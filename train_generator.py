@@ -75,10 +75,22 @@ def preprocess_image(image):
     image = image * 2.0
     return image
 
+## mouth
+# topic = 'mouth_12'
+# scale_limit_ratio=0.1
+# translate_x_ratio=0.2
+# translate_y_ratio=0.3
+
+# eye
+topic = 'left_eye_12'
+scale_limit_ratio=0.2
+translate_x_ratio=0.2
+translate_y_ratio=0.2
+
 batch_size = 32
+scale_face = 64
 input_shape = (32, 32, 3)
 random_horizontal_flip = True
-topic = 'mouth_12'
 output_size = int(topic.split('_')[-1])
 num_epochs = 1000
 patience = 50
@@ -86,21 +98,21 @@ patience = 50
 train_data_gen = ImageFaceLandmarkDataGenerator(rotate_bounding_box_part='face',
                                                 rotate_limit_in_degrees=10,
                                                 scale_bounding_box_part='face',
-                                                scale_bounding_box_size=64,
-                                                scale_limit_ratio=0.1,
-                                                translate_x_ratio=0.2,
-                                                translate_y_ratio=0.3,
+                                                scale_bounding_box_size=scale_face,
+                                                scale_limit_ratio=scale_limit_ratio,
+                                                translate_x_ratio=translate_x_ratio,
+                                                translate_y_ratio=translate_y_ratio,
                                                 target_bounding_box_part='mouth',
                                                 random_horizontal_flip=random_horizontal_flip,
                                                 preprocessing_function=preprocess_image)
 val_data_gen = ImageFaceLandmarkDataGenerator(rotate_bounding_box_part='face',
                                               scale_bounding_box_part='face',
-                                              scale_bounding_box_size=64,
+                                              scale_bounding_box_size=scale_face,
                                               target_bounding_box_part='mouth',
                                               preprocessing_function=preprocess_image)
 
 now = datetime.datetime.now()
-model_name = 'kao_onet_{}x{}x{}_{}_batch_{}_random_hflip_{}'.format(input_shape[0], input_shape[1], input_shape[2], topic, batch_size, random_horizontal_flip)
+model_name = 'kao_onet_{}x{}x{}_face_{}_{}_batch_{}_random_hflip_{}'.format(input_shape[0], input_shape[1], input_shape[2], scale_face, topic, batch_size, random_horizontal_flip)
 
 base_path = 'models/' + model_name + '_'
 base_path += now.strftime("%Y_%m_%d_%H_%M_%S") + '/'
