@@ -1,3 +1,4 @@
+import os
 from prepare_data_generator import prepare_data
 
 ### data preparation
@@ -75,21 +76,17 @@ def preprocess_image(image):
     image = image * 2.0
     return image
 
-## mouth
-# topic = 'mouth_12'
-# scale_limit_ratio=0.1
-# translate_x_ratio=0.2
-# translate_y_ratio=0.3
+topic = os.environ['topic']
+part = '_'.join(topic.split('_')[:-1])
+scale_limit_ratio=float(os.environ['scale_limit_ratio'])
+translate_x_ratio=float(os.environ['translate_x_ratio'])
+translate_y_ratio=float(os.environ['translate_y_ratio'])
+reduce_lr_factor=float(os.environ['reduce_lr_factor'])
 
-# eye
-topic = 'left_eye_12'
-scale_limit_ratio=0.2
-translate_x_ratio=0.2
-translate_y_ratio=0.2
-
-batch_size = 32
-scale_face = 64
-input_shape = (32, 32, 3)
+batch_size = int(os.environ['batch_size'])
+scale_face = int(os.environ['scale_face'])
+input_shape = (os.environ['input_shape']).split('x')
+input_shape = (int(input_shape[0]), int(input_shape[1]), int(input_shape[2]))
 random_horizontal_flip = True
 output_size = int(topic.split('_')[-1])
 num_epochs = 1000
@@ -102,17 +99,17 @@ train_data_gen = ImageFaceLandmarkDataGenerator(rotate_bounding_box_part='face',
                                                 scale_limit_ratio=scale_limit_ratio,
                                                 translate_x_ratio=translate_x_ratio,
                                                 translate_y_ratio=translate_y_ratio,
-                                                target_bounding_box_part='mouth',
+                                                target_bounding_box_part=part,
                                                 random_horizontal_flip=random_horizontal_flip,
                                                 preprocessing_function=preprocess_image)
 val_data_gen = ImageFaceLandmarkDataGenerator(rotate_bounding_box_part='face',
                                               scale_bounding_box_part='face',
                                               scale_bounding_box_size=scale_face,
-                                              target_bounding_box_part='mouth',
+                                              target_bounding_box_part=part,
                                               preprocessing_function=preprocess_image)
 
 now = datetime.datetime.now()
-model_name = 'kao_onet_{}x{}x{}_face_{}_{}_batch_{}_random_hflip_{}'.format(input_shape[0], input_shape[1], input_shape[2], scale_face, topic, batch_size, random_horizontal_flip)
+model_name = 'kao_onet_{}x{}x{}_face_{}_{}_batch_{}_random_hflip_{}_reduce_lr_{}'.format(input_shape[0], input_shape[1], input_shape[2], scale_face, topic, batch_size, random_horizontal_flip, reduce_lr_factor)
 
 base_path = 'models/' + model_name + '_'
 base_path += now.strftime("%Y_%m_%d_%H_%M_%S") + '/'
@@ -126,7 +123,7 @@ model.compile(loss='mse', optimizer = 'adam', metrics=['mse'])
 log_file_path = base_path + 'faceoff_training.log'
 csv_logger = CSVLogger(log_file_path, append=False)
 early_stop = EarlyStopping('val_loss', patience=patience)
-reduce_lr = ReduceLROnPlateau('val_loss', factor=0.1,
+reduce_lr = ReduceLROnPlateau('val_loss', factor=reduce_lr_factor,
                               patience=int(patience/4), verbose=1)
 trained_models_path = base_path + 'faceoff_' + model_name
 model_names = trained_models_path + '.{epoch:03d}-{val_loss:.2f}-{loss:.2f}.hdf5'
