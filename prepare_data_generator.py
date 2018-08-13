@@ -16,7 +16,7 @@ if to_gray:
 else:
     color = 'bgr'
 
-def prepare_data(data_path, annotation_path, landmark_type, multipie_seed = None):
+def prepare_data(data_path, annotation_path, landmark_type, multipie_seed = None, multipie_skip_incomplete = False):
     face_landmark_list = []
     if landmark_type == 'muct_clmtools':
         landmark_size = 71
@@ -102,6 +102,8 @@ def prepare_data(data_path, annotation_path, landmark_type, multipie_seed = None
                 full_filename = os.path.join(annotation_path, camera_label, label_filename)
                 assert os.path.isfile(full_filename)
                 landmarks = sio.loadmat(full_filename)['pts']
+                if multipie_skip_incomplete and len(landmarks) != 68:
+                    continue
                 if len(landmarks) != 68 and len(landmarks) != 66:
                     continue
                 image_filename = os.path.join(data_path,
