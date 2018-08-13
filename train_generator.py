@@ -68,7 +68,7 @@ from keras.callbacks import CSVLogger, ModelCheckpoint, EarlyStopping
 from keras.callbacks import ReduceLROnPlateau
 
 from generator import ImageFaceLandmarkDataGenerator
-from muct import MUCT
+from landmark_descriptor import MUCT
 
 def preprocess_image(image):
     image = image / 255.0
