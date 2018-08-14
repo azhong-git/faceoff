@@ -16,7 +16,7 @@ if to_gray:
 else:
     color = 'bgr'
 
-def prepare_data(data_path, annotation_path, landmark_type, multipie_seed = None, multipie_skip_incomplete = False):
+def prepare_data(data_path, annotation_path, landmark_type, multipie_seed = None, multipie_skip_incomplete = False, LP300W_3D = False):
     face_landmark_list = []
     if landmark_type == 'muct_clmtools':
         landmark_size = 71
@@ -118,11 +118,28 @@ def prepare_data(data_path, annotation_path, landmark_type, multipie_seed = None
                 image_count += 1
                 if (image_count % 500) == 499:
                     print('Loading Multipie ...', image_count)
-                #     return face_landmark_list # only for debugging
                 for image_filename_picked in image_filenames[0:MULTIPIE_SELECT_LIGHTING]:
                     face_landmark = FaceLandmark(landmarks, landmark_type)
                     face_landmark.set_image_path(image_filename_picked)
                     face_landmark_list.append(face_landmark)
+    elif landmark_type == '300W-LP':
+        import scipy.io as sio
+        import glob
+        subdirs = ['AFW', 'HELEN', 'IBUG', 'LFPW']
+        for subdir in subdirs:
+            data_dir = os.path.join(data_path, subdir)
+            image_paths = glob.glob(data_dir+'/*.jpg')
+            for image_path in image_paths:
+                basename = os.path.basename(image_path)[:-4]
+                landmark_path = os.path.join(annotation_path, subdir, basename+'_pts.mat')
+                if LP300W_3D == True:
+                    landmarks = sio.loadmat(landmark_path)['pts_3d']
+                else:
+                    landmarks = sio.loadmat(landmark_path)['pts_2d']
+                landmarks = np.array(landmarks)
+                face_landmark = FaceLandmark(landmarks, 'multipie')
+                face_landmark.set_image_path(image_path)
+                face_landmark_list.append(face_landmark)
     else:
         assert False, '{} not supported'
     return face_landmark_list
