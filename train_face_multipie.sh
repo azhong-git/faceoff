@@ -1,0 +1,2 @@
+CUDA_VISIBLE_DEVICES=0 topic=face_136 scale_limit_ratio=0.1 translate_x_ratio=0.1 translate_y_ratio=0.1 reduce_lr_factor=0.5 batch_size=32 scale_face=56 input_shape=64x64x3 python3 train_face_multipie_generator.py
+CUDA_VISIBLE_DEVICES=0 topic=face_136 scale_limit_ratio=0.1 translate_x_ratio=0.1 translate_y_ratio=0.1 reduce_lr_factor=0.5 batch_size=32 scale_face=56 input_shape=64x64x3 python3 train_face_multipie_generator.py
